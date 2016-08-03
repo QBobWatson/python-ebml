@@ -182,9 +182,7 @@ __all__ = ['EbmlException', 'Inconsistent', 'DecodeError', 'MAX_DATA_SIZE']
 ################################################################################
 # * Exception
 
-from .. import MoviesException
-
-class EbmlException(MoviesException):
+class EbmlException(Exception):
     """Class for general EBML exceptions."""
 
 class Inconsistent(EbmlException):
