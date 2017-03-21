@@ -1,10 +1,11 @@
 """
-Container classes.
+Utility: list sorted by a key function.
 """
 
 from bisect import bisect_left, bisect_right
+from collections.abc import Sequence
 from operator import itemgetter
-from collections.abc import Sequence, MutableSequence, MutableMapping
+
 
 class SortedList(Sequence):
     """Sequence sorted by a key function.
@@ -260,123 +261,3 @@ class SortedList(Sequence):
     def find_gt(self, k):
         """Return first item with a key > k.  Raise ValueError if not found"""
         return self._items[self.index_gt(k)]
-
-
-class ProtectedDict(MutableMapping):
-    """A dict-like class supporting custom a set item method.
-
-    Inheriting this class should behave exactly like inheriting dict, except all
-    item mutator access (not including deleting items) is guaranteed to go
-    through the __setitem__() method.
-
-    Attributes:
-        _dict: the underlying dictionary
-    """
-
-    def __init__(self, **kwargs):
-        self._dict = {}
-        for key, val in kwargs.items():
-            self[key] = val
-
-    # Override this
-    def __setitem__(self, key, val):
-        self._dict[key] = val
-
-    # Pure virtual
-    def __getitem__(self, item):
-        return self._dict[item]
-    def __len__(self):
-        return len(self._dict)
-    def __iter__(self):
-        return iter(self._dict)
-    def __delitem__(self, item):
-        del self._dict[item]
-
-    # Reimplemented
-    def __contains__(self, item):
-        return self._dict.__contains__(item)
-    def __eq__(self, other):
-        return self._dict.__eq__(other)
-    def __ne__(self, other):
-        return self._dict.__ne__(other)
-    def keys(self):
-        return self._dict.keys()
-    def items(self):
-        return self._dict.items()
-    def values(self):
-        return self._dict.values()
-    def get(self, key, default=None):
-        return self._dict.get(key, default)
-    def clear(self):
-        self._dict.clear()
-    def setdefault(self, key, default=None):
-        self._dict.setdefault(key, default)
-
-    # New
-    def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self._dict)
-    def __str__(self):
-        return repr(self)
-
-
-class ProtectedList(MutableSequence):
-    """A list-like class supporting a custom set item method.
-
-    Inheriting this class should behave like inheriting list, except all item
-    mutator access (not including reordering or deleting items) is guaranteed to
-    go through the __setitem__() or insert() methods.
-
-    Attributes:
-        _list: the underlying list
-    """
-
-    def __init__(self, iterable=None):
-        self._list = []
-        if iterable:
-            for thing in iterable:
-                self.append(thing)
-
-    # Override these
-    def __setitem__(self, i, val):
-        # Default behavior
-        self._list[i] = val
-    def insert(self, i, item):
-        "Insert item before index i"
-        # Default behavior
-        self._list.insert(i, item)
-
-    # Pure virtual
-    def __getitem__(self, item):
-        return self._list[item]
-    def __len__(self):
-        return len(self._list)
-    def __delitem__(self, i):
-        del self._list[i]
-
-    # Reimplemented
-    def __contains__(self, item):
-        return item in self._list
-    def __iter__(self):
-        return iter(self._list)
-    def __reversed__(self):
-        return reversed(self._list)
-    def index(self, value):
-        return self._list.index(value)
-    def count(self, value):
-        return self._list.count(value)
-    def reverse(self):
-        self._list.reverse()
-    def pop(self, index=-1):
-        return self._list.pop(index)
-    def remove(self, value):
-        self._list.remove(value)
-
-    # New
-    def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self._list)
-    def __str__(self):
-        return repr(self)
-
-
-__all__ = ['SortedList', 'ProtectedDict', 'ProtectedList']
-

@@ -231,6 +231,10 @@ class Element:
         "Return a pretty string summarizing this element."
         return (" " * indent) + str(self)
 
+    def summ(self):
+        "Short for print(self.summary())."
+        print(self.summary())
+
     # Reimplement maybe
 
     def check_consistency(self):

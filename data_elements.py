@@ -1,4 +1,5 @@
 #pylint: disable=too-many-public-methods,too-many-ancestors
+#pylint: disable=logging-format-interpolation,too-many-lines
 """
 Elements that exist as accessors for their data, using the Parsed property:
 EBML, Segment, Seek, Info, TrackEntry, Video, Audio, AttachedFile, Tag, Targets,
@@ -9,21 +10,21 @@ from collections import defaultdict
 from os import SEEK_SET
 from itertools import chain
 from operator import attrgetter, itemgetter
-from jdr_lib.container import SortedList
 
 from . import Inconsistent
-from .utility import hex_bytes, encode_var_int
+from .utility import hex_bytes, encode_var_int, fmt_time
 from .tags import MATROSKA_TAGS
 from .element import ElementMaster, ElementPlaceholder, ElementVoid, \
     STATE_UNLOADED, STATE_SUMMARY
 from .parsed import Parsed, create_atomic
+from .sortedlist import SortedList
 
 __all__ = ['ElementEBML', 'ElementSegment', 'ElementSeek', 'ElementInfo',
            'ElementTrackEntry', 'ElementVideo', 'ElementAudio',
            'ElementAttachedFile', 'ElementTag', 'ElementTargets',
-           'ElementSimpleTag']
+           'ElementSimpleTag', 'ElementEditionEntry']
 
-import logging
+import logging  #pylint: disable=wrong-import-order,wrong-import-position
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
@@ -95,7 +96,10 @@ class ElementSegment(ElementMaster):
      + attachments: Iterator over AttachedFile elements.
      + attachments_byname: Dict of AttachedFile elements, stored by FileName.
      + attachments_byuid: Dict of AttachedFile elements, stored by FileUID.
-     + chapters: The Chapters element, if any.
+     + editions: Iterator over EditionEntry elements from the Chapters element,
+       if any.
+     + chapters: Iterator over ChapterAtom elements from the first EditionEntry
+       in the Chapters element, if any.
      + tags: Iterator over Tag elements, i.e. tag groups.
 
     Extracted from Info elements:
@@ -202,8 +206,6 @@ class ElementSegment(ElementMaster):
             ret[attachment.file_uid] = attachment
         return ret
 
-    chapters = Parsed('Chapters', '')
-
     def duration_getter(self, child):
         "Get child.duration, scaling to seconds."
         return child.duration * self.timecode_scale / 1e9
@@ -224,6 +226,20 @@ class ElementSegment(ElementMaster):
     muxing_app = Parsed('Info', 'muxing_app', 'muxing_app', skip=None)
     writing_app = Parsed('Info', 'writing_app', 'writing_app', skip=None)
 
+    # From Chapters element
+    @property
+    def editions(self):
+        "Iterate over the children of the Chapters element, if any."
+        elt = self.child_named('Chapters')
+        if elt is None:
+            raise StopIteration
+        yield from elt.children_named('EditionEntry')
+    @property
+    def chapters(self):
+        "Iterate over the ChapterAtom children of the first EditionEntry."
+        edition = next(self.editions)  # May raise StopIteration
+        yield from edition.chapters
+
     # Manipulating children
 
     def add_attachment(self, file_name, mime_type, description=None):
@@ -239,9 +255,8 @@ class ElementSegment(ElementMaster):
             if description is not None:
                 attachment.file_description = description
             return attachment
-        try:
-            attachments = next(self.children_named('Attachments'))
-        except StopIteration:
+        attachments = self.child_named('Attachments')
+        if attachments is None:
             attachments = ElementMaster.new('Attachments', self, 0)
         attached_file = ElementAttachedFile.new('AttachedFile', attachments)
         attached_file.file_name = file_name
@@ -296,6 +311,9 @@ class ElementSegment(ElementMaster):
         ret += ind_str + "Tags:\n"
         for tags in self.tags:
             ret += tags.summary(indent+8) + "\n"
+        ret += ind_str + "Chapters:\n"
+        for chapter in self.chapters:
+            ret += chapter.summary(indent+8) + "\n"
         return ret[:-1]
 
     # Reading and writing
@@ -641,6 +659,8 @@ class ElementTrackEntry(ElementMaster):
      + flag_lacing: The value of the FlagLacing element (bool).
      + video: ElementVideo instance, for tracks of type 'video'.
      + audio: ElementAudio instance, for tracks of type 'audio'.
+     + track_index: The index of this TrackEntry in the list of tracks in its
+       segment.
     """
 
     track_type = Parsed('TrackType', 'string_val', 'value',
@@ -657,6 +677,16 @@ class ElementTrackEntry(ElementMaster):
     flag_lacing = Parsed('FlagLacing', 'value', 'value', create_atomic())
     video = Parsed('Video', '')
     audio = Parsed('Audio', '')
+
+    @property
+    def track_index(self):
+        "Return the index of this TrackEntry in its containing segment."
+        segment = self.parent.parent
+        if not isinstance(segment, ElementSegment):
+            raise ValueError("Track is not contained in a segment")
+        for idx, other in enumerate(segment.tracks):
+            if other is self:
+                return idx
 
     def __str__(self):
         ret = "{}: {} lang={} codec={} num={} uid={}" \
@@ -965,3 +995,98 @@ class ElementSimpleTag(ElementMaster):
         for tag in self.sub_tags:
             ret += tag.summary(indent+4) + "\n"
         return ret[:-1]
+
+
+class ElementChapterAtom(ElementMaster):
+    """Class to extract metadata from a ChapterAtom element.
+
+    This class represents a single chapter definition.  It consists of, among
+    other things, the following attributes:
+     + time_start: the start time of the chapter (nanoseconds, unscaled).
+     + time_end: the end time of the chapter (nanoseconds, unscaled; optional).
+     + identifier: the string ID for WebVTT cue identifier storage.
+     + display names in different languages
+    """
+
+    chapter_uid = Parsed('ChapterUID', 'value', 'value', create_atomic())
+    identifier = Parsed('ChapterStringUID', 'value', 'value', create_atomic())
+    time_start = Parsed('ChapterTimeStart', 'value', 'value', create_atomic())
+    time_end = Parsed('ChapterTimeEnd', 'value', 'value', create_atomic())
+    flag_hidden = Parsed('ChapterFlagHidden', 'value', 'value', create_atomic())
+    flag_enabled = Parsed('ChapterFlagEnabled', 'value', 'value',
+                          create_atomic())
+    segment_uid = Parsed('ChapterSegmentUID', 'value', 'value', create_atomic())
+    segment_edition_uid = Parsed('ChapterSegmentEditionUID', 'value', 'value',
+                                 create_atomic())
+    physical_equiv = Parsed('ChapterPhysicalEquiv', 'value', 'value',
+                            create_atomic())
+
+    @property
+    def chapter_tracks(self):
+        "Return a list of track numbers to which this chapter applies."
+        chapter_track = self.child_named('ChapterTrack')
+        if chapter_track is None:
+            return []
+        return [c.value for c in chapter_track]
+
+    def display_name(self, lang='eng'):
+        """Return the name of the chapter in the specified language, or None.
+
+        Note that the display name is an optional child of a ChapterAtom, and
+        there may be more than one display name for a given language.  In the
+        latter case, the first such is returned.
+
+        The language is the ISO-639-2 alpha-3 form.
+        """
+        for display in self.children_named('ChapterDisplay'):
+            langs = [l.value for l in display.children_named('ChapLanguage')] \
+                    or ['eng']
+            if lang in langs:
+                return display.child_named('ChapString').value
+        return None
+
+    def __str__(self):
+        return "{} id={!r} {} --> {} {}hid {}enab" \
+            .format(self.__class__.__name__, self.identifier,
+                    fmt_time(self.time_start, 3),
+                    fmt_time(self.time_end, 3)
+                    if self.time_end is not None else "[--]",
+                    '!' if not self.flag_hidden else '',
+                    '!' if not self.flag_enabled else '')
+
+    def summary(self, indent=0):
+        ret = super().summary(indent) + "\n"
+        for display in self.children_named('ChapterDisplay'):
+            langs = [l.value for l in display.children_named('ChapLanguage')] \
+                    or ['eng']
+            langs = ",".join(langs)
+            ret += " " * (indent+4) + "{}: {!r}\n" \
+                   .format(langs, display.child_named('ChapString').value)
+        return ret[:-1]
+
+
+class ElementEditionEntry(ElementMaster):
+    """Class to extract metadata from an EditionEntry element.
+
+    An EditionEntry contains one set of chapter definitions.  The important
+    attribute is 'chapters'.
+    """
+
+    edition_uid = Parsed('EditionUID', 'value', 'value', create_atomic())
+    flag_hidden = Parsed('EditionFlagHidden', 'value', 'value', create_atomic())
+    flag_default = Parsed('EditionFlagDefault', 'value', 'value',
+                          create_atomic())
+    flag_ordered = Parsed('EditionFlagOrdered', 'value', 'value',
+                          create_atomic())
+
+    @property
+    def chapters(self):
+        "Return an iterator of ElementChapterAtom instances."
+        yield from self.children_named('ChapterAtom')
+
+    def __str__(self):
+        return "{} {}hid {}def ord={!r}: {} chapters" \
+            .format(self.__class__.__name__, self.flag_hidden,
+                    '!' if not self.flag_default else '',
+                    '!' if not self.flag_ordered else '',
+                    len(list(self.chapters)))

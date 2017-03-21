@@ -36,10 +36,10 @@ class ElementTest(EbmlTest):
 
     def test_1_resizing(self):
         "Test element minimum & maximum size, and resizing."
-        from . import MAX_DATA_SIZE
-        from .element import ElementUnsupported, ElementVoid, ElementMaster
-        from .tags import Tag, MATROSKA_TAGS
-        from .atomic import ElementRaw, ElementUnsigned, ElementBoolean, \
+        from ebml import MAX_DATA_SIZE
+        from ebml.element import ElementUnsupported, ElementVoid, ElementMaster
+        from ebml.tags import Tag, MATROSKA_TAGS
+        from ebml.atomic import ElementRaw, ElementUnsigned, ElementBoolean, \
             ElementFloat, ElementString, ElementDate, ElementID
 
         # ElementUnsupported: Rigid data size
@@ -366,8 +366,8 @@ class ElementTest(EbmlTest):
 
     def test_2_dirty(self):
         "Test whether the dirty property works."
-        from .element import Element
-        from .atomic import ElementRaw
+        from ebml.element import Element
+        from ebml.atomic import ElementRaw
 
         ebmlf = self.read_file_data()
         elts = self.track_entry_elt(ebmlf)
@@ -426,9 +426,9 @@ class ElementTest(EbmlTest):
 
     def test_3_consistency(self):
         "Test consistency checks."
-        from . import Inconsistent
-        from .element import ElementVoid, ElementPlaceholder
-        from .atomic import ElementUnsigned
+        from ebml import Inconsistent
+        from ebml.element import ElementVoid, ElementPlaceholder
+        from ebml.atomic import ElementUnsigned
 
         ebmlf = self.read_file_data()
         ebmlf.check_consistency()

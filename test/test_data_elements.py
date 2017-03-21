@@ -20,8 +20,8 @@ class DataElementTest(EbmlTest):
         """
         #pylint: disable=too-many-locals
 
-        from .tags import MATROSKA_TAGS
-        from jdr_lib.container import SortedList
+        from ebml.tags import MATROSKA_TAGS
+        from ebml.sortedlist import SortedList
 
         ebmlf = self.read_file_data()
         self.assertEqual(len(ebmlf), 2)
@@ -68,7 +68,6 @@ class DataElementTest(EbmlTest):
                       attachments[0])
         self.assertIs(seg.attachments_byuid[b'd\xcc\x99\x00\xf9\xa7oV'],
                       attachments[1])
-        self.assertIs(seg.chapters, seg[6])
         self.assertEqual(seg.uid, b'\xb0WRGrIO#{;\x88\xb0\x0e\x06\xaaK')
         self.assertEqual(seg.timecode_scale, 1000000)
         self.assertEqual(seg.duration, 9425.504)
@@ -189,11 +188,30 @@ class DataElementTest(EbmlTest):
         self.assertEqual(sub_tags[0].tag_name, 'CHARACTER')
         self.assertEqual(sub_tags[0].string_val, 'Harry Potter')
 
+        # Chapters
+        edition = next(seg.editions)
+        self.assertEqual(edition.edition_uid, 15869277706556786643)
+        self.assertEqual(edition.flag_hidden, False)
+        self.assertEqual(edition.flag_default, True)
+        self.assertEqual(edition.flag_ordered, False)
+        chapters = list(seg.chapters)
+        self.assertEqual(chapters, list(edition.chapters))
+        self.assertEqual(len(chapters), 30)
+        chapter = chapters[5]
+        self.assertEqual(chapter.chapter_uid, 2972522551968254461)
+        self.assertIs(chapter.identifier, None)
+        self.assertEqual(chapter.time_start, 1154820333333)
+        self.assertEqual(chapter.time_end, 1389054333333)
+        self.assertEqual(chapter.flag_hidden, False)
+        self.assertEqual(chapter.flag_enabled, True)
+        self.assertEqual(chapter.display_name(), 'Chapter 06')
+        self.assertIs(chapter.display_name('fra'), None)
+
         ebmlf.stream.close()
 
     def test_2_segment_normalize(self):
         "Test Segment.normalize() and writing."
-        from .container import File
+        from ebml.container import File
         stream = BytesIO(self.file_data)
         ebmlf = File(stream)
         segment = ebmlf[1]
@@ -329,9 +347,9 @@ class DataElementTest(EbmlTest):
 
     def test_3_segment_manipulate(self):
         "Test Segment child manipulation."
-        from .container import File
-        from .element import ElementMaster
-        from .data_elements import ElementTag, ElementSimpleTag
+        from ebml.container import File
+        from ebml.element import ElementMaster
+        from ebml.data_elements import ElementTag, ElementSimpleTag
         stream = BytesIO(self.file_data)
         ebmlf = File(stream)
         segment = ebmlf[1]

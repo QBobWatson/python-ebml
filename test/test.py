@@ -2,13 +2,21 @@
 #pylint: disable=too-many-public-methods,too-many-statements
 """
 General unit tests.
+
+Run 'python3 -m unittest -v' from the ebml directory.
 """
 
 import unittest
 from io import BytesIO
+import os
+import sys
 import random
 
-from ..test import TEST_FILE1
+from os.path import dirname as dn, abspath as ap
+sys.path.append(dn(dn(dn(ap(__file__)))))
+
+TEST_DATA_DIR = os.path.dirname(__file__)
+TEST_FILE = os.path.join(TEST_DATA_DIR, 'test.mkv')
 
 __all__ = ['EbmlTest', 'UtilityTest', 'HeaderTest', 'TagsTest', 'ParsedTest',
            'FilesTest', 'UNK_ID', 'TEST_FILE_DATA']
@@ -19,7 +27,7 @@ LOG.setLevel(logging.INFO)
 
 UNK_ID = 0x01223344
 
-with open(TEST_FILE1, 'rb') as mkv_file:
+with open(TEST_FILE, 'rb') as mkv_file:
     TEST_FILE_DATA = mkv_file.read()
 
 
@@ -34,7 +42,7 @@ class EbmlTest(unittest.TestCase):
 
     def read_file_data(self):
         "Read file data with the fake Cluster element."
-        from .container import File
+        from ebml.container import File
         ebmlf = File(BytesIO(self.file_data))
         ebmlf[1].read_data(ebmlf.stream)
         return ebmlf
@@ -60,8 +68,8 @@ class UtilityTest(EbmlTest):
 
     def test_utility(self):
         "Test utility functions."
-        from .utility import encode_var_int, decode_var_int, numbytes_var_int
-        from .tags import MATROSKA_TAGS
+        from ebml.utility import encode_var_int, decode_var_int, numbytes_var_int
+        from ebml.tags import MATROSKA_TAGS
 
         # numbytes_var_int()
         for size in range(1, 8):
@@ -96,8 +104,8 @@ class HeaderTest(EbmlTest):
 
     def test_header(self):
         "Test Header."
-        from .header import Header
-        from .utility import encode_var_int
+        from ebml.header import Header
+        from ebml.utility import encode_var_int
 
         for _ in range(100):
             ebml_id = random.randrange(1<<28-1)
@@ -151,8 +159,8 @@ class TagsTest(EbmlTest):
 
     def test_tags(self):
         "Test MATROSKA_TAGS."
-        from .tags import MATROSKA_TAGS
-        from .atomic import ElementFloat
+        from ebml.tags import MATROSKA_TAGS
+        from ebml.atomic import ElementFloat
 
         # Test attributes reading
         tag = MATROSKA_TAGS['Duration']
@@ -209,10 +217,10 @@ class ParsedTest(EbmlTest):
     def test_parsed(self):
         "Test the functionality of the Parsed property."
         from operator import attrgetter
-        from .parsed import Parsed, create_atomic
-        from .element import ElementMaster
-        from .atomic import ElementUnsigned, ElementUnicode
-        from .tags import MATROSKA_TAGS
+        from ebml.parsed import Parsed, create_atomic
+        from ebml.element import ElementMaster
+        from ebml.atomic import ElementUnsigned, ElementUnicode
+        from ebml.tags import MATROSKA_TAGS
 
         class ElementTest(ElementMaster):
             #pylint: disable=too-many-ancestors,missing-docstring,no-self-use
@@ -334,7 +342,7 @@ class FilesTest(EbmlTest):
         Chapters (if it exists), but not Cues, to a stream and compares the
         result to the input data.
         """
-        from .container import File
+        from ebml.container import File
 
         level_ones = ("SeekHead", "Info", "Tracks", "Attachments",
                       "Tags", "Cues")

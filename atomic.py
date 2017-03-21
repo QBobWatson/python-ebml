@@ -6,12 +6,12 @@ Atomic elements.
 from os import SEEK_SET
 from struct import pack, unpack
 from datetime import datetime, timedelta
-from jdr_lib.container import SortedList
 
 from . import DecodeError, Inconsistent, MAX_DATA_SIZE
 from .utility import hex_bytes, numbytes_var_int, encode_var_int, decode_var_int
 from .element import Element, STATE_LOADED
 from .tags import MATROSKA_TAGS
+from .sortedlist import SortedList
 
 __all__ = ['ElementAtomic', 'ElementRaw', 'ElementUnsigned', 'ElementSigned',
            'ElementBoolean', 'ElementEnum', 'ElementBitField', 'ElementFloat',

@@ -7,7 +7,7 @@ from io import BytesIO
 from . import DecodeError
 
 __all__ = ['hex_bytes', 'numbytes_var_int', 'max_var_int_in',
-           'encode_var_int', 'decode_var_int', 'read_var_int']
+           'encode_var_int', 'decode_var_int', 'read_var_int', 'fmt_time']
 
 def hex_bytes(bytestring):
     """Return a string representation of a byte string.
@@ -141,3 +141,12 @@ def read_var_int(stream, max_bytes=8):
             return (val, first_byte + rest)
     raise DecodeError("Invalid value more than {} bytes".format(max_bytes))
 
+def fmt_time(nsecs, precision=9, sep='.'):
+    "Format a time in nanoseconds to precision decimal places."
+    secs = int(nsecs/1000000000)
+    mins = int(secs/60)
+    hours = int(mins/60)
+    frac = str(nsecs/1000000000 - secs)[2:precision+2]
+    frac = frac + '0' * (precision - len(frac))
+    return "{:02d}:{:02d}:{:02d}".format(hours, mins % 60, secs % 60) \
+        + sep + frac

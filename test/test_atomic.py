@@ -26,8 +26,8 @@ class AtomicTest(EbmlTest):
         """
         #pylint: disable=too-many-locals
 
-        from .container import File
-        from .atomic import ElementRaw, ElementUnsigned, \
+        from ebml.container import File
+        from ebml.atomic import ElementRaw, ElementUnsigned, \
             ElementBoolean, ElementEnum, ElementBitField, \
             ElementFloat, ElementString, ElementUnicode, \
             ElementDate, ElementID

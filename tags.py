@@ -211,7 +211,8 @@ class TagDict(Mapping):
             ElementFloat, ElementString, ElementUnicode, ElementDate, ElementID
         from .data_elements import ElementEBML, ElementSegment, ElementSeek, \
             ElementInfo, ElementTrackEntry, ElementVideo, ElementAudio, \
-            ElementAttachedFile, ElementTag, ElementTargets, ElementSimpleTag
+            ElementAttachedFile, ElementTag, ElementTargets, ElementSimpleTag, \
+            ElementEditionEntry, ElementChapterAtom
 
         # For internal use
         MATROSKA_TAG_DATA.append(
@@ -224,7 +225,6 @@ class TagDict(Mapping):
                  multiple=True, webm=True, minver=1, maxver=4))
 
         for tag_data in MATROSKA_TAG_DATA:
-            #pylint: disable=star-args
             cls_name = tag_data['cls_name']
             del tag_data['cls_name']
             tag_data['cls'] = locals()[cls_name]
@@ -241,6 +241,8 @@ class TagDict(Mapping):
         self['SeekPosition'].data_size_min = 8
         self['Info'].cls = ElementInfo
         self['Title'].data_size_min = 100
+        self['EditionEntry'].cls = ElementEditionEntry
+        self['ChapterAtom'].cls = ElementChapterAtom
         self['ChapterTranslateCodec'].cls = ElementEnum
         self['ChapterTranslateCodec'].values \
             = {0 : 'Matroska Script', 1 : 'DVD-menu'}

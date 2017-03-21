@@ -16,8 +16,8 @@ class ContainerTest(EbmlTest):
 
         The middle element is shrinkable to size 5.
         """
-        from .element import ElementMaster, ElementUnsupported, ElementVoid
-        from .atomic import ElementString
+        from ebml.element import ElementMaster, ElementUnsupported, ElementVoid
+        from ebml.atomic import ElementString
         elt = ElementMaster.new(UNK_ID)
         ElementVoid.of_size(5, elt, 0)
         ElementUnsupported.of_size(UNK_ID, 5, elt, 5)
@@ -47,10 +47,10 @@ class ContainerTest(EbmlTest):
 
     def test_1_containers(self):
         "Test Container methods."
-        from . import Inconsistent
-        from .element import ElementVoid, ElementMaster, ElementUnsupported
-        from .atomic import ElementString, ElementUnicode
-        from .tags import MATROSKA_TAGS
+        from ebml import Inconsistent
+        from ebml.element import ElementVoid, ElementMaster, ElementUnsupported
+        from ebml.atomic import ElementString, ElementUnicode
+        from ebml.tags import MATROSKA_TAGS
 
         ebmlf = self.read_file_data()
         seg = ebmlf[1]
@@ -286,7 +286,7 @@ class ContainerTest(EbmlTest):
 
     def test_2_rearrange(self):
         "Test Container.rearrange() and its relatives."
-        from .element import ElementMaster, ElementVoid, ElementUnsupported
+        from ebml.element import ElementMaster, ElementVoid, ElementUnsupported
 
         # -- Test rearrange_resize()
         # Already arranged

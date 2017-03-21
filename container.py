@@ -7,11 +7,11 @@ from operator import attrgetter
 from io import IOBase
 from os import SEEK_SET, SEEK_CUR, SEEK_END
 from datetime import datetime
-from jdr_lib.container import SortedList
 
 from . import Inconsistent, DecodeError
 from .header import Header
 from .tags import MATROSKA_TAGS
+from .sortedlist import SortedList
 
 __all__ = ['Container', 'File']
 
@@ -86,6 +86,13 @@ class Container(SortedList):
     def children_named(self, name):
         "Return an iterator over all children with a given name."
         return (child for child in self if child.name == name)
+
+    def child_named(self, name):
+        "Return the first child with the given name, or None."
+        try:
+            return next(self.children_named(name))
+        except StopIteration:
+            return None
 
     def children_with_id(self, ebml_id):
         "Return an iterator over all children with a given ebml_id."
