@@ -137,7 +137,8 @@ class TagDict(Mapping):
             return self._dict[key]
         except KeyError:
             if isinstance(key, int):
-                return Tag(key, 'Unknown', 'ElementUnsupported', "*",
+                from .element import ElementUnsupported
+                return Tag(key, 'Unknown', ElementUnsupported, "*",
                            False, True, True, 1, 4)
             raise
 
