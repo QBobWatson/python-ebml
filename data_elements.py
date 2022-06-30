@@ -231,13 +231,13 @@ class ElementSegment(ElementMaster):
     def editions(self):
         "Iterate over the children of the Chapters element, if any."
         elt = self.child_named('Chapters')
-        if elt is None:
-            raise StopIteration
+        if elt is None: return
         yield from elt.children_named('EditionEntry')
     @property
     def chapters(self):
         "Iterate over the ChapterAtom children of the first EditionEntry."
-        edition = next(self.editions)  # May raise StopIteration
+        try: edition = next(self.editions)
+        except StopIteration: return
         yield from edition.chapters
 
     # Manipulating children
